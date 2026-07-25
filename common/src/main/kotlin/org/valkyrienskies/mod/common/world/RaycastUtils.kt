@@ -30,10 +30,21 @@ import java.util.function.Predicate
 
 private val logger = LogManager.getLogger("RaycastUtilsKt")
 
+private const val MAX_RAYCAST_DISTANCE_SQR = 1_000_000.0
+
 @JvmOverloads
 fun Level.clipIncludeShips(
     ctx: ClipContext, shouldTransformHitPos: Boolean = true, skipShip: ShipId? = null
 ): BlockHitResult {
+    if (!ctx.from.toJOML().isFinite || !ctx.to.toJOML().isFinite ||
+        ctx.from.distanceToSqr(ctx.to) > MAX_RAYCAST_DISTANCE_SQR
+    ) {
+        logger.warn("Ignoring invalid raycast: from=${ctx.from}, to=${ctx.to}")
+        return BlockHitResult.miss(ctx.to, Direction.getNearest(
+            ctx.to.x - ctx.from.x, ctx.to.y - ctx.from.y, ctx.to.z - ctx.from.z
+        ), BlockPos.containing(ctx.to))
+    }
+
     val vanillaHit = vanillaClip(ctx)
 
     if (shipObjectWorld == null) {
